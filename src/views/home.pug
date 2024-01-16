@@ -15,6 +15,12 @@ html(lang="en")
                 form
                     input(placeholder="room name", required, type="text")
                     button Enter Room 
+            div#myStream     
+                video#myFace(autoplay, playsinline, width="400", height="400")
+                button#mute Mute
+                button#camera Turn Camera Off
+                select#cameras
+                    option(value="device") Face Camera
             div#room 
                 h3
                 ul

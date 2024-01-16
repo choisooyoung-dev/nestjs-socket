@@ -5,6 +5,93 @@ const socket = io(); // io function은 알아서 socket.io를 실행하고 있�
 const welcome = document.getElementById('welcome');
 const form = welcome.querySelector('form');
 const room = document.getElementById('room');
+const myFace = document.getElementById('myFace');
+const muteBtn = document.getElementById('mute');
+const cameraBtn = document.getElementById('camera');
+const camerasSelect = document.getElementById('cameras');
+
+let myStream;
+let muted = false;
+let cameraOff = false;
+
+async function getCameras() {
+    try {
+        const devices = await navigator.mediaDevices.enumerateDevices(); // 장치 리스트 가져오기
+        const cameras = devices.filter((device) => device.kind === 'videoinput'); // 비디오인풋만 가져오기
+        const currentCamera = myStream.getVideoTracks()[0]; // 비디오 트랙의 첫 번째 track 가져오기 : 이게 cameras에 있는 label과 같다면 그 label은 선택된 것이다!
+
+        cameras.forEach((camera) => {
+            const option = document.createElement('option'); // 새로운 옵션 생성
+            option.value = camera.deviceId; // 카메라의 고유 값을 value에 넣기
+            option.innerText = camera.label; // 사용자가 선택할 때는 label을 보고 선택할 수 있게 만들기
+            if (currentCamera.label === camera.label) {
+                // 현재 선택된 카메라 체크하기
+                option.selected = true;
+            }
+            camerasSelect.appendChild(option); // 카메라의 정보들을 option항목에 넣어주기
+        });
+    } catch (e) {
+        console.log(e);
+    }
+}
+
+async function getMedia(deviceId) {
+    const initialConstraints = {
+        // initialConstraints는 deviceId가 없을 때 실행
+        audio: true,
+        video: { facingMode: 'user' }, // 카메라가 전후면에 달려있을 경우 전면 카메라의 정보를 받음 (후면의 경우 "environment")
+    };
+    const cameraConstraints = {
+        // CameraConstraints는 deviceId가 있을 때 실행
+        audio: true,
+        video: { deviceId: { exact: deviceId } }, // exact를 쓰면 받아온 deviceId가 아니면 출력하지 않는다
+    };
+
+    try {
+        myStream = await navigator.mediaDevices.getUserMedia(deviceId ? cameraConstraints : initialConstraints);
+        myFace.srcObject = myStream;
+        if (!deviceId) {
+            // 처음 딱 1번만 실행! 우리가 맨 처음 getMedia를 할 때만 실행됨!!
+            await getCameras();
+        }
+    } catch (e) {
+        console.log(e);
+    }
+}
+
+getMedia();
+
+function handleMuteClick() {
+    myStream.getAudioTracks().forEach((track) => (track.enabled = !track.enabled));
+    if (!muted) {
+        muteBtn.innerText = 'Unmute';
+        muted = true;
+    } else {
+        muteBtn.innerText = 'Mute';
+        muted = false;
+    }
+}
+
+function handleCameraClick() {
+    myStream.getVideoTracks().forEach((track) => (track.enabled = !track.enabled));
+    if (cameraOff) {
+        cameraBtn.innerText = 'Turn Camera Off';
+        cameraOff = false;
+    } else {
+        cameraBtn.innerText = 'Turn Camera On';
+        cameraOff = true;
+    }
+}
+
+async function handleCameraChange() {
+    await getMedia(camerasSelect.value);
+}
+
+muteBtn.addEventListener('click', handleMuteClick);
+cameraBtn.addEventListener('click', handleCameraClick);
+
+// 카메라 변경 확인
+camerasSelect.addEventListener('input', handleCameraChange);
 
 room.hidden = true; // 처음에는 방안에서 할 수 있는 것들 안보이게!
 
