@@ -27,14 +27,24 @@ const wss = new WebSocketServer({ server });
 const sockets = [];
 wss.on('connection', (socket) => {
     sockets.push(socket);
-    console.log('Connected to Browser 🚀 ');
-    socket.on('close', () => console.log('Disconnected to Server ❌ '));
-    socket.on('message', (message) => {
-        const utf8Message = message.toString('utf8');
-        console.log(utf8Message);
-        sockets.forEach((aSocket) => aSocket.send(utf8Message));
+    socket['nick'] = 'Anonymous';
+    socket.on('open', () => console.log('Connected to Browser 🚀 '));
+
+    socket.on('message', (msg) => {
+        const message = JSON.parse(msg);
+        switch (message.type) {
+            case 'new_message':
+                sockets.forEach((aSocket) => aSocket.send(`${socket.nickname}: ${message.payload}`));
+                break;
+            case 'nickname':
+                // 닉네임을 socket 프로퍼티에 저장
+                socket['nickname'] = message.payload;
+                break;
+        }
+        // const utf8Message = msg.toString('utf8');
+        // console.log(utf8Message);
     });
-    // socket.send('hello!!');
+    socket.on('close', () => console.log('Disconnected to Server ❌ '));
 });
 
 server.listen(3000, handleListen);
